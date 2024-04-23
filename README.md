@@ -35,7 +35,7 @@ Should be easy?
 This should probably just be a single function or two.  
 
 1.  Arguments:  
-    a.  stations to use/data frame to work on  
+    a.  stations to use/data frame to work on    
     b.  criteria/thresholds  
     c.  time period over which to calculate  
 2.  Body:  

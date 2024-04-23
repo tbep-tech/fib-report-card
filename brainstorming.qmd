@@ -25,8 +25,18 @@ catchments <- read_sf(here::here("data", "geospatial", "TB_Select_Fib_Catchments
 swfwmd_pixels <- read_sf(here::here("data", "geospatial", "swfwmd_pixel_2_utm_m_83.shp"))
 ```
 
+## define pixels over which to average  
 
 Function for defining precip pixels for each station/catchment needs to:  
+
+1.  Read in catchments file - specify layer as argument  
+2.  Read in SWFWMD pixels file - can be specified, but should have default because this shouldn't change  
+3.  Get them into the same CRS  
+4.  Intersect them  
+5.  Return a data frame or list of pixels in each catchment and which stations they go with    
+
+
+Then that data frame or list or whatever will go into another function to get the precip records and average to catchment level over certain time frames.
 
 ```{r}
 define_station_pixels <- function(catchment_layer,
@@ -34,11 +44,16 @@ define_station_pixels <- function(catchment_layer,
     catch2 <- st_transform(catchment_layer,
                            crs = st_crs(pixels_layer))
     catch_pixels <- st_intersection(pixels_layer, catch2)
+    # station_pixels <- catch_pixels |> 
+    #     st_drop_geometry() |> 
+    #     group_by(StationNam) |> 
+    #     summarize(pixels = paste(unique(PIXEL), collapse = ", ")) |> 
+    #     ungroup()
+    
     station_pixels <- catch_pixels |> 
         st_drop_geometry() |> 
-        group_by(StationNam) |> 
-        summarize(pixels = paste(unique(PIXEL), collapse = ", ")) |> 
-        ungroup()
+        select(StationNam, PIXEL)
+    
     station_pixels
 }
 ```
@@ -49,12 +64,58 @@ stn_pix <- define_station_pixels(catchments, swfwmd_pixels)
 
 That's not working the way I want it to. I want to be able to say something like "use the pixels %in% the row related to these stations".  Could split the data frame and return it as a list? With a single data frame per station? That doesn't feel right either.  Maybe it depends some on what the next function is going to look like - how to use this output to generate those catchment-wide averages.  
 
-1.  Read in catchments file - specify layer as argument  
-2.  Read in SWFWMD pixels file - can be specified, but should have default because this shouldn't change  
-3.  Get them into the same CRS  
-4.  Intersect them  
-5.  Return a data frame or list of pixels in each catchment and which stations they go with    
+  
+## calculate average precip across a catchment  
+
+```{r}
+# read in precip data - this was created during the fibs_and_hydrology part of the project
+prcp_daily <- readRDS(here::here("data", "precipitation", "compiledDailyRainfall.rds"))
+```
 
 
-Then that data frame or list or whatever will go into another function to get the precip records and average to catchment level over certain time frames.  
+here, we need to define:  
+
+1.  what are the catchments/stations to deal with  
+2.  which pixels are we using for each catchment/station (use output from function above)  
+3.  where is the data frame with precip by date/pixel combination  
+4.  for each pixel, generate - that day; 24 hrs; 48 hrs; 72 hrs before  
+5.  for each catchment/station, group and average precip amounts  
+
+**NEED TO MAKE THE COLUMN NAMES FLEXIBLE**  - they're hard-coded as StationNam and PIXEL in the body of the function because I was having problems  
+
+**ALSO NEED TO** calculate lags by pixel and average those  
+
+```{r}
+calc_station_precip <- function(precip_data,
+                                station_df,
+                                station_names = "StationNam",
+                                pixel_ids = "PIXEL"
+                                ){
+    # station data is the data frame that defines which pixels are associated with each given station  
+    # station_names is the name of the column with station names - needs to be quoted
+    # pixel_ids is the column with all the pixels - needs to be quoted
+    # precip data is the daily precip by pixel downloaded from swfwmd
+    
+    
+    stns <- unlist(unique(station_df[ , station_names]))
+    stn_prcp <- list()
+    for(i in seq_along(stns)){
+        pixs <- station_df[station_df$StationNam == stns[i], "PIXEL"]
+        # pixs <- station_df |> 
+        #     filter({{station_names}} == stns[i]) |> 
+        #     select({{pixel_ids}})
+        prcp <- precip_data[precip_data$PIXEL %in% pixs$PIXEL, ]
+        prcp_avgd <- prcp |> 
+            group_by(date) |> 
+            summarize(inches = mean(inches, na.rm = TRUE))
+        stn_prcp[[i]] <- prcp_avgd
+    }
+    names(stn_prcp) <- stns
+    stn_prcp
+}
+```
+
+```{r}
+stn_prcps <- calc_station_precip(prcp_daily, stn_pix)
+```
 
