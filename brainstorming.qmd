@@ -1,0 +1,60 @@
+---
+title: "Brainstorming/Scratch Pad"
+format: html
+---
+
+This file is where I'll be "thinking out loud" and working out what to make the functions and products look like. It may not be pretty. The process never is.   
+
+```{r}
+library(tidyverse)
+library(sf)
+library(mapview)
+```
+
+```{r}
+dbasins <- read_sf(here::here("data", "geospatial", "dbasins-galb.shp"))
+# mapview(dbasins)
+```
+
+```{r}
+catchments <- read_sf(here::here("data", "geospatial", "TB_Select_Fib_Catchments_Dissolved.shp"))
+# mapview(catchments)
+```
+
+```{r}
+swfwmd_pixels <- read_sf(here::here("data", "geospatial", "swfwmd_pixel_2_utm_m_83.shp"))
+```
+
+
+Function for defining precip pixels for each station/catchment needs to:  
+
+```{r}
+define_station_pixels <- function(catchment_layer,
+                                    pixels_layer) {
+    catch2 <- st_transform(catchment_layer,
+                           crs = st_crs(pixels_layer))
+    catch_pixels <- st_intersection(pixels_layer, catch2)
+    station_pixels <- catch_pixels |> 
+        st_drop_geometry() |> 
+        group_by(StationNam) |> 
+        summarize(pixels = paste(unique(PIXEL), collapse = ", ")) |> 
+        ungroup()
+    station_pixels
+}
+```
+
+```{r}
+stn_pix <- define_station_pixels(catchments, swfwmd_pixels)
+```
+
+That's not working the way I want it to. I want to be able to say something like "use the pixels %in% the row related to these stations".  Could split the data frame and return it as a list? With a single data frame per station? That doesn't feel right either.  Maybe it depends some on what the next function is going to look like - how to use this output to generate those catchment-wide averages.  
+
+1.  Read in catchments file - specify layer as argument  
+2.  Read in SWFWMD pixels file - can be specified, but should have default because this shouldn't change  
+3.  Get them into the same CRS  
+4.  Intersect them  
+5.  Return a data frame or list of pixels in each catchment and which stations they go with    
+
+
+Then that data frame or list or whatever will go into another function to get the precip records and average to catchment level over certain time frames.  
+
