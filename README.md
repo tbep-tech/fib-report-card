@@ -3,7 +3,7 @@
 
 ## General outline  
 
-Ideally, a single script will be created that can be run to do all of the things below, without having to think about it (beyond "this is still appropriate, right?"). Just Ctrl-A, Ctrl-Enter. But if changes need to be made, flexibility will be in place to allow for it.  
+Ideally, a single script (or qmd doc) will be created that can be run to do all of the things below, without having to think about it (beyond "this is still appropriate, right?"). Just Ctrl-A, Ctrl-Enter. But if changes need to be made, flexibility will be in place to allow for it.  
 
 So essentially, I need to write a series of functions to do each thing below, and string them together into one script that can be re-run in the future.  
 
@@ -21,8 +21,8 @@ So essentially, I need to write a series of functions to do each thing below, an
 These are things we need to write functions for so they can be done easily  
 
 1.  Additional (more recent) precipitation data - pull from SWFWMD's ftp site and process to catchment level  
-2.  Additional (more recent) FIB data - can potentially use `tbeptools::read_importwqp()`, but might be nice to filter to only our stations of choice - by either updating `read_importwqp()`, or using something like `dataRetrieval::readWQPdata()`. (also keep an eye on the `TADA` package)  
-3.  Check/updating of older FIB data - in case any updates have been made in WQP (?) (I suspect updating old data is rare, but happens)   
+2.  Additional (more recent) FIB data - can potentially use `tbeptools::read_importwqp()`, but might be nice to filter to only our stations of choice - by either updating `read_importwqp()`, or using something like `dataRetrieval::readWQPdata()` (which turns out to be quite flexible). (also keep an eye on the `TADA` package)  
+3.  Check/updating of older FIB data - in case any updates have been made in WQP (?) (I suspect updating old data is rare, but happens) - `dataRetrieval::readWQPdata` is very flexible; could just re-download data every year if desired     
 
 
 ### Appending new to old  

@@ -1,0 +1,132 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(dataRetrieval)
+```
+
+
+```{r}
+# pulled these from 'StationNam' field of catchments shapefile
+# some rows had multiple stations combined with '+'
+# I separated those out here
+stns <- c("21FLHILL_WQX-101",
+          "21FLHILL_WQX-102",
+          "21FLHILL_WQX-103",
+          "21FLHILL_WQX-619",
+          "21FLHILL_WQX-104",
+          "21FLHILL_WQX-501",
+          "21FLHILL_WQX-502",
+          "21FLHILL_WQX-504",
+          "21FLPDEM_WQX-05-06",
+          "21FLPDEM_WQX-12-02",
+          "21FLPDEM_WQX-19-02",
+          "21FLPDEM_WQX-22-01",
+          "21FLPDEM_WQX-24-02",
+          "21FLTPA_WQX-G1SW0095",
+          "21FLTPA_WQX-G1SW0099",
+          "21FLHILL_WQX-74",
+          "21FLHILL_WQX-109",
+          "21FLHILL_WQX-133",
+          "21FLHILL_WQX-144",
+          "21FLHILL_WQX-560",
+          "21FLHILL_WQX-561",
+          "21FLTPA_WQX-G1SW0093",
+          "21FLHILL_WQX-594",
+          "21FLHILL_WQX-595",
+          "21FLHILL_WQX-596",
+          "21FLHILL_WQX-597",
+          "21FLHILL_WQX-598",
+          "21FLHILL_WQX-599",
+          "21FLHILL_WQX-2",
+          "21FLCOSP_WQX-32-03",
+          "21FLCOSP_WQX-44-02",
+          "21FLCOSP_WQX-SC-01",
+          "21FLHILL_WQX-136",
+          "21FLHILL_WQX-264",
+          "21FLHILL_WQX-592",
+          "21FLTPA_WQX-G1SW0092",
+          "21FLHILL_WQX-112",
+          "21FLHILL_WQX-180",
+          "21FLDOH_WQX-MANATEE152",
+          "21FLDOH_WQX-MANATEE153",
+          "21FLHILL_WQX-22",
+          "21FLMANA_WQX-FC1",
+          "21FLCOSP_WQX-48-03",
+          "21FLCOSP_WQX-COSP580",
+          "21FLCOSP_WQX-NORTH CANAL",
+          "21FLCOSP_WQX-SOUTH CANAL",
+          "21FLCOSP_WQX-CENTRAL CANAL",
+          "21FLPDEM_WQX-39-01",
+          "21FLPDEM_WQX-39-05",
+          "21FLMANA_WQX-LM3",
+          "21FLMANA_WQX-LM4",
+          "21FLMANA_WQX-LM5",
+          "21FLMANA_WQX-LM6")
+
+```
+
+Characteristic Names Enterococci and Enterococcus; siteIDs only trying 3
+
+https://www.waterqualitydata.us/#siteid=21FLCOSP_WQX-CENTRAL%20CANAL&siteid=21FLCOSP_WQX-NORTH%20CANAL&characteristicName=Enterococci&characteristicName=Enterococcus&mimeType=csv&providers=NWIS&providers=STORET
+
+```{r}
+# set up the query
+# can enter start dates here if desired
+# (into the args list)
+entero_names <- c("Enterococci",
+                  "Enterococcus")
+siteid <- stns
+
+startDateLo <- as.Date("2012-01-01")
+# startDateHi would be an end date
+
+args <- list(
+    siteid = siteid,
+    characteristicName = entero_names,
+    startDateLo = startDateLo
+)
+```
+
+
+
+See how many records will be returned:  
+
+```{r}
+wqp_summ <- readWQPdata(args, querySummary = TRUE)
+
+n_results <- wqp_summ$`total-result-count`
+n_sites <- wqp_summ$`total-site-count`
+```
+
+The query will return **`r n_results`** results from **`r n_sites`** stations.  
+
+And get the data:
+
+```{r}
+wqp_dat <- readWQPdata(args, querySummary = FALSE)
+
+# the following actually returns more columns (80 rather than 67)
+wqp_narrow <- readWQPdata(args, querySummary = FALSE, dataProfile = "narrowResult")
+```
+
+Fields of interest are:  
+
+OrganizationIdentifier  
+OrganizationFormalName  
+MonitoringLocationIdentifier = station  
+ActivityTypeCode (e.g. "Sample-Routine")  
+
+ResultMeasureValue - the result (has characters in here too - "Not Reported")  
+ResultMeasure.MeasureUnitCode  
+ActivityStartDate
+ActivityStartTime.Time (local time)  
+ActivityStartTime.TimeZoneCode  
+
+[ActivityStartDateTime is in UTC]  
+
+ResultAnalyticalMethod.MethodIdentifier - in case you want to include/exclude specific methods  
+DetectionQuantitationLimitMeasure.MeasureValue  
+ResultLaboratoryCommentText  
