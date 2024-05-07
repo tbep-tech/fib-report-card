@@ -59,7 +59,9 @@ define_station_pixels <- function(catchment_layer,
 ```
 
 ```{r}
-stn_pix <- define_station_pixels(catchments, swfwmd_pixels)
+stn_pix <- define_station_pixels(catchments, swfwmd_pixels) |> 
+    nest(.by = StationNam,
+         .key = "pixels")
 ```
 
 That's not working the way I want it to. I want to be able to say something like "use the pixels %in% the row related to these stations".  Could split the data frame and return it as a list? With a single data frame per station? That doesn't feel right either.  Maybe it depends some on what the next function is going to look like - how to use this output to generate those catchment-wide averages.  
@@ -70,6 +72,15 @@ That's not working the way I want it to. I want to be able to say something like
 ```{r}
 # read in precip data - this was created during the fibs_and_hydrology part of the project
 prcp_daily <- readRDS(here::here("data", "precipitation", "compiledDailyRainfall.rds"))
+
+prcp_daily_plus_lag <- prcp_daily |> 
+    arrange(PIXEL, date) |> 
+    group_by(PIXEL) |> 
+    mutate(prev24 = inches + lag(inches, 1),
+           prev48 = prev24 + lag(inches, 2),
+           prev72 = prev48 + lag(inches, 3)) |> 
+    ungroup()
+
 ```
 
 

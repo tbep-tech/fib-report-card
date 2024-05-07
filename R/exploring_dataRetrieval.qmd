@@ -78,13 +78,11 @@ https://www.waterqualitydata.us/#siteid=21FLCOSP_WQX-CENTRAL%20CANAL&siteid=21FL
 # (into the args list)
 entero_names <- c("Enterococci",
                   "Enterococcus")
-siteid <- stns
-
 startDateLo <- as.Date("2012-01-01")
 # startDateHi would be an end date
 
 args <- list(
-    siteid = siteid,
+    siteid = stns,
     characteristicName = entero_names,
     startDateLo = startDateLo
 )
