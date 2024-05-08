@@ -288,6 +288,18 @@ prcp_stn <- dplyr::left_join(catch_pixels, prcp_daily, by = 'pixel', relationshi
             )
 ```
 
+## Test the rain function again  
+
+having sourced raindl.R
+
+```{r}
+source(here::here("R", "raindl.R"))
+```
+
+```{r}
+test <- read_importrain(curyr = 2022, catch_pixels = catch_pixels)
+```
+
 
 ## set up function  
 
