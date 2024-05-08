@@ -57,11 +57,14 @@ read_importrain <- function(curyr, catch_pixels, mos = 1:12, quiet = T){
     out <- NULL
     for(fl in fls){
 
+        if(!quiet)
+            cat(basename(fl), '\n')
+        
         # download daily month data
         dl <- try({
             
             tmp1 <- tempfile(fileext = ".zip")
-            download.file(url = fl, destfile = tmp1, mode = 'wb', quiet = quiet)    
+            download.file(url = fl, destfile = tmp1, method = 'curl', quiet = quiet)    
   
         }, silent = quiet)
         
