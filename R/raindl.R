@@ -60,6 +60,9 @@ read_importrain <- function(curyr, catch_pixels, mos = 1:12, quiet = T){
         if(!quiet)
             cat(basename(fl), '\n')
         
+        # get the name of the file that will be in the zipped download
+        txtflnm <- paste0(stringr::str_remove(basename(fl), "_txt.zip"), ".txt")
+        
         # download daily month data
         dl <- try({
             
@@ -77,14 +80,13 @@ read_importrain <- function(curyr, catch_pixels, mos = 1:12, quiet = T){
             
         }
         
-        # extract text file and import
-        tmp2 <- tempdir()
-        utils::unzip(tmp1, exdir = tmp2)
-
-        txtfl <- list.files(tmp2, pattern = gsub('\\_txt.*$', '', basename(fl)), full.names = T)
-        
-        datall <- read.table(txtfl, sep = ',', header = F) |> 
+        # import from the zipped file
+        datall <- read.table(unz(tmp1, txtflnm),
+                             sep = ',', header = F) |> 
             dplyr::rename(pixel = V1, date = V2, rain = V3)
+        
+        unlink(tmp1, recursive = T)
+        
         
         # join with grd cells, average by date, station
         dat <- dplyr::left_join(catch_pixels, datall, by = 'pixel', relationship = 'many-to-many') |> 
@@ -96,9 +98,6 @@ read_importrain <- function(curyr, catch_pixels, mos = 1:12, quiet = T){
         # append to output
         out <- dplyr::bind_rows(out, dat)
 
-        # clean up
-        unlink(tmp1, recursive = T)
-        unlink(tmp2, recursive = T)
         
     }
     
