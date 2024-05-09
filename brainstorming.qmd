@@ -229,6 +229,61 @@ args <- list(
 )
 ```
 
+Using only the first 2 of the stations, but all other args the same through the website, this is how the query URL is built:  
+
+https://www.waterqualitydata.us/#siteid=21FLHILL_WQX-101&siteid=21FLHILL_WQX-102&characteristicName=Enterococci&characteristicName=Enterococcus&startDateLo=01-01-2020&startDateHi=12-31-2023&mimeType=csv&providers=NWIS&providers=STORET
+
+
+How would readWQPdata construct a URL? 
+
+```{r}
+# this is just the first part of the readWQPdata function, then returning baseurl
+readwqpurl <- function (..., querySummary = FALSE, tz = "UTC", ignore_attributes = FALSE, 
+                        convertType = TRUE) 
+{
+    tz <- match.arg(tz, OlsonNames())
+    valuesList <- dataRetrieval:::readWQPdots(...)
+    service <- valuesList$service
+    service <- match.arg(service, c("Result", "Station", "Activity", 
+                                    "ActivityMetric", "SiteSummary", "Project", "ProjectMonitoringLocationWeighting", 
+                                    "ResultDetectionQuantitationLimit", "BiologicalMetric", 
+                                    "Organization"), several.ok = FALSE)
+    values <- sapply(valuesList$values, function(x) utils::URLencode(x, 
+                                                                     reserved = TRUE))
+    baseURL <- dataRetrieval:::drURL(service, arg.list = values)
+    baseURL <- dataRetrieval:::appendDrURL(baseURL, mimeType = "tsv")
+    
+    return(baseURL)
+}
+
+
+readwqpurl(args)
+```
+
+Okay, so we've got 
+https://www.waterqualitydata.us/data/Result/search?siteid=  
+
+then site IDs separated by '%3B'
+
+e.g.
+
+search?siteid=21FLHILL_WQX-101%3B21FLHILL_WQX-102%3B21FLHILL_WQX-103%3B21FLHILL_WQX-619
+
+then the rest glued together with & as you'd expect
+
+21FLMANA_WQX-LM6&characteristicName=Enterococci%3BEnterococcus&startDateLo=01-01-2020&startDateHi=12-31-2023&zip=yes&mimeType=tsv
+
+%3B seems to be used as "or", e.g. characteristicName=Enterococci%3BEnterococcus
+
+
+On the website they don't string things together like that; every "or" situation gets its own "siteid=ABC&siteid=DEF" etc. which might be easier for me to construct (though it certainly makes a longer URL)  
+
+Also csv vs. tsv or zipped....
+
+And dataRetrieval function doesn't include the providers at the end (does this matter? probably not?)
+
+If it's just a matter of gluing together what we need into the appropriate URL for the API, that doesn't seem difficult to set up for report card purposes. But incorporating flexibility like the package functions do..... yikes
+
 ```{r}
 # see what we'll get
 wqp_summ <- readWQPdata(args, querySummary = TRUE)
