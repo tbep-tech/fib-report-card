@@ -297,7 +297,7 @@ source(here::here("R", "raindl.R"))
 ```
 
 ```{r}
-test <- read_importrain(curyr = 2022, catch_pixels = catch_pixels)
+rain2021 <- read_importrain(curyr = 2021, catch_pixels = catch_pixels)
 ```
 
 
