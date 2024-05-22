@@ -1,19 +1,19 @@
-stations <- c("21FLHILL_WQX-101",
-              "21FLHILL_WQX-102",
-              "21FLHILL_WQX-103")
-entero_names <- c("Enterococci",
-                  "Enterococcus")
-startDate <- as.Date("2020-01-01")
-endDate <- as.Date("2023-12-31")
-# startDateHi would be an end date
-
-args <- list(
-    siteid = stations,
-    characteristicName = entero_names,
-    startDateLo = format(startDate, "%m-%d-%Y"),
-    startDateHi = format(endDate, "%m-%d-%Y")
-)
-# date format has to be mm-dd-yyyy
+# stations <- c("21FLHILL_WQX-101",
+#               "21FLHILL_WQX-102",
+#               "21FLHILL_WQX-103")
+# entero_names <- c("Enterococci",
+#                   "Enterococcus")
+# startDate <- as.Date("2020-01-01")
+# endDate <- as.Date("2023-12-31")
+# # startDateHi would be an end date
+# 
+# args <- list(
+#     siteid = stations,
+#     characteristicName = entero_names,
+#     startDateLo = format(startDate, "%m-%d-%Y"),
+#     startDateHi = format(endDate, "%m-%d-%Y")
+# )
+# # date format has to be mm-dd-yyyy
 
 
 # everything above can be function arguments, and a function can do everything below
@@ -68,6 +68,6 @@ read_importwqpStationsAndStuff <- function(args){
 }
 
 
-test <- read_importwqpStationsAndStuff(args)
+# test <- read_importwqpStationsAndStuff(args)
 
 

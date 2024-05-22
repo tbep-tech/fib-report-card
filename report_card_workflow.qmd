@@ -1,0 +1,112 @@
+---
+title: "Enterococcus Report Card Process"
+format: html
+message: false
+warning: false
+error: true
+---
+
+# Load things  
+
+## Packages, spatial layers, etc.  
+
+```{r}
+library(tidyverse)
+library(sf)
+library(mapview)
+library(tbeptools)
+
+dbasins <- read_sf(here::here("data", "geospatial", "dbasins-galb.shp"))
+catchments <- read_sf(here::here("data", "geospatial", "TB_Select_Fib_Catchments_Dissolved.shp"))
+swfwmd_pixels <- read_sf(here::here("data", "geospatial", "swfwmd_pixel_2_utm_m_83.shp"))
+```
+
+
+
+## Source functions  
+
+These will eventually be incorporated into tbeptools; for now sourcing the .R files
+
+```{r}
+# to download Entero data at specified stations
+source(here::here("R", "read_importwqpStationsAndStuff.R"))
+
+# to download precip data from SWFWMD
+source(here::here("R", "raindl.R"))
+
+# to identify wet/dry fib samples  
+source(here::here("R", "anlz_fibwetdry.R"))
+```
+
+
+
+# Download things  
+
+
+## Enterococcus data  
+
+```{r}
+# define arguments
+stations <- c("21FLHILL_WQX-101",
+              "21FLHILL_WQX-102",
+              "21FLHILL_WQX-103")
+entero_names <- c("Enterococci",
+                  "Enterococcus")
+startDate <- as.Date("2020-01-01")
+endDate <- as.Date("2020-12-31")
+```
+
+```{r}
+# put them together
+# date format has to be mm-dd-yyyy for the url
+args <- list(
+    siteid = stations,
+    characteristicName = entero_names,
+    startDateLo = format(startDate, "%m-%d-%Y"),
+    startDateHi = format(endDate, "%m-%d-%Y")
+)
+```
+
+```{r}
+# grab the data
+fibdat <- read_importwqpStationsAndStuff(args = args)
+
+fibdat$date <- lubridate::ymd(fibdat$date)
+```
+
+
+## Precip data  
+
+Actually need to loop through some years  
+
+```{r}
+prcpdat <- read_importrain(curyr = 2020, catch_pixels = catch_pixels,
+                           quiet = FALSE)
+```
+
+
+
+# Link things  
+
+Entero data to precip data; identify wet/dry samples  
+
+```{r}
+# define 'wet' sample as 1 inch over 2 days
+test1 <- anlz_fibwetdry(fibdat, prcpdat, 
+                        temporal_window = 2, 
+                        wet_threshold = .3)
+# number of wet samples:
+sum(test1$wet_sample)
+# proportion of samples that are wet:
+sum(test1$wet_sample)/nrow(test1)
+
+# define 'wet' sample as 0.5 inches in 1 day
+test2 <- anlz_fibwetdry(fibdat, prcpdat, 
+                        temporal_window = 1, 
+                        wet_threshold = 0.2)
+# number of wet samples:
+sum(test2$wet_sample)
+# proportion of samples that are wet:
+sum(test2$wet_sample)/nrow(test2)
+```
+
