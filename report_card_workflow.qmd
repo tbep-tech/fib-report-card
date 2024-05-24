@@ -46,14 +46,22 @@ source(here::here("R", "anlz_fibwetdry.R"))
 ## Enterococcus data  
 
 ```{r}
+stns <- unique(catch_pixels$station)
+stns[which(stns == "21FLCOSP_WQX-CENTRAL *")] <- "21FLCOSP_WQX-CENTRAL CANAL"
 # define arguments
-stations <- c("21FLHILL_WQX-101",
-              "21FLHILL_WQX-102",
-              "21FLHILL_WQX-103")
+stations <- stns[1:35]
+
+
+# it doesn't like one of these stations:
+# stations <- stns[31:46]
+
+# and/or one of these:
+# stations <- stns[47:length(stations)]
+
 entero_names <- c("Enterococci",
                   "Enterococcus")
-startDate <- as.Date("2020-01-01")
-endDate <- as.Date("2020-12-31")
+startDate <- as.Date("2018-01-01")
+endDate <- as.Date("2022-12-31")
 ```
 
 ```{r}
@@ -71,7 +79,17 @@ args <- list(
 # grab the data
 fibdat <- read_importwqpStationsAndStuff(args = args)
 
+# fibdat2 <- read_importwqpStationsAndStuff(args = args)
+
 fibdat$date <- lubridate::ymd(fibdat$date)
+```
+
+```{r}
+#| eval: false
+
+fibdat2 <- fibdat |> 
+    mutate(year = lubridate::year(date))
+table(fibdat2$station, fibdat2$year)
 ```
 
 
@@ -80,9 +98,25 @@ fibdat$date <- lubridate::ymd(fibdat$date)
 Actually need to loop through some years  
 
 ```{r}
-prcpdat <- read_importrain(curyr = 2020, catch_pixels = catch_pixels,
-                           quiet = FALSE)
+# yrs <- 2018:2022
+# 
+# prcp_out <- list()
+# 
+# for(i in seq_along(yrs)){
+#     yr = yrs[i]
+#     prcptmp <- read_importrain(curyr = yr, catch_pixels = catch_pixels,
+#                            quiet = FALSE)
+#     prcp_out[[i]] <- prcptmp
+# }
+# 
+# prcpdat <- bind_rows(prcp_out)
+# 
+# save(prcpdat, file = here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
+load(here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
 ```
+
+
+
 
 
 
@@ -91,15 +125,31 @@ prcpdat <- read_importrain(curyr = 2020, catch_pixels = catch_pixels,
 Entero data to precip data; identify wet/dry samples  
 
 ```{r}
+tmpthrs <- 3
+wetthrs <- .25
+
 # define 'wet' sample as 1 inch over 2 days
 test1 <- anlz_fibwetdry(fibdat, prcpdat, 
-                        temporal_window = 2, 
-                        wet_threshold = .3)
+                        temporal_window = tmpthrs, 
+                        wet_threshold = wetthrs)
 # number of wet samples:
 sum(test1$wet_sample)
 # proportion of samples that are wet:
-sum(test1$wet_sample)/nrow(test1)
+(prop_wet <- sum(test1$wet_sample, na.rm = TRUE)/nrow(test1))
+pct_wet <- round(prop_wet*100, 1)
+nsamps <- nrow(test1)
+nstns <- length(unique(test1$station))
 
+ggplot(test1, aes(x = wet_sample,
+                  y = FIBconc)) +
+    geom_boxplot() +
+    scale_y_log10() +
+    labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+```
+
+
+
+```{r}
 # define 'wet' sample as 0.5 inches in 1 day
 test2 <- anlz_fibwetdry(fibdat, prcpdat, 
                         temporal_window = 1, 
@@ -109,4 +159,24 @@ sum(test2$wet_sample)
 # proportion of samples that are wet:
 sum(test2$wet_sample)/nrow(test2)
 ```
+
+
+# Calculate Report Card Metrics  
+
+`anlz_fibmap()`  - categorize based on thresholds  
+
+`anlz_fibmatrix()`  
+
+
+# Generate Report Card tables/graphics  
+
+`show_fibmatrix()`  
+
+`show_thrplot()`  
+
+`show_boxplot()`  
+
+
+
+
 
