@@ -49,15 +49,9 @@ source(here::here("R", "anlz_fibwetdry.R"))
 stns <- unique(catch_pixels$station)
 stns[which(stns == "21FLCOSP_WQX-CENTRAL *")] <- "21FLCOSP_WQX-CENTRAL CANAL"
 # define arguments
-stations <- stns[1:35]
 
 
-# it doesn't like one of these stations:
-# stations <- stns[31:46]
-
-# and/or one of these:
-# stations <- stns[47:length(stations)]
-
+stations <- stns  # can subset if desired
 entero_names <- c("Enterococci",
                   "Enterococcus")
 startDate <- as.Date("2018-01-01")
@@ -115,6 +109,13 @@ Actually need to loop through some years
 load(here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
 ```
 
+Fix Central Canal in the precip data station listing, so it will match the station in the fib data.  
+
+```{r}
+prcpdat <- prcpdat |> 
+    mutate(station = case_when(station == "21FLCOSP_WQX-CENTRAL *" ~ "21FLCOSP_WQX-CENTRAL CANAL",
+                               .default = station))
+```
 
 
 
@@ -126,14 +127,14 @@ Entero data to precip data; identify wet/dry samples
 
 ```{r}
 tmpthrs <- 3
-wetthrs <- .25
+wetthrs <- .5
 
 # define 'wet' sample as 1 inch over 2 days
 test1 <- anlz_fibwetdry(fibdat, prcpdat, 
                         temporal_window = tmpthrs, 
                         wet_threshold = wetthrs)
 # number of wet samples:
-sum(test1$wet_sample)
+sum(test1$wet_sample, na.rm = TRUE)
 # proportion of samples that are wet:
 (prop_wet <- sum(test1$wet_sample, na.rm = TRUE)/nrow(test1))
 pct_wet <- round(prop_wet*100, 1)
@@ -145,6 +146,18 @@ ggplot(test1, aes(x = wet_sample,
     geom_boxplot() +
     scale_y_log10() +
     labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+
+
+ggplot(test1, aes(x = wet_sample,
+                  y = rain_total)) +
+    geom_boxplot() +
+    scale_y_log10() +
+    labs(subtitle = glue::glue("'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+
+ggplot(test1, aes(x = wet_sample,
+                  y = rain_total)) +
+    geom_boxplot() +
+    labs(subtitle = glue::glue("'wet' threshold {wetthrs} inches over {tmpthrs} days"))
 ```
 
 

@@ -1,0 +1,286 @@
+---
+title: "Wet vs. Dry"
+format: 
+    html:
+        code-fold: true
+        toc: true
+        toc-location: left
+        embed-resources: true
+warning: false
+message: false
+error: true
+---
+
+Comparing various definitions of a "wet sample".  
+
+# Load things  
+
+## Packages, spatial layers, etc.  
+
+```{r}
+library(tidyverse)
+library(sf)
+library(mapview)
+library(tbeptools)
+
+dbasins <- read_sf(here::here("data", "geospatial", "dbasins-galb.shp"))
+catchments <- read_sf(here::here("data", "geospatial", "TB_Select_Fib_Catchments_Dissolved.shp"))
+swfwmd_pixels <- read_sf(here::here("data", "geospatial", "swfwmd_pixel_2_utm_m_83.shp"))
+```
+
+
+
+## Source functions  
+
+These will eventually be incorporated into tbeptools; for now sourcing the .R files
+
+```{r}
+# to download Entero data at specified stations
+source(here::here("R", "read_importwqpStationsAndStuff.R"))
+
+# to download precip data from SWFWMD
+source(here::here("R", "raindl.R"))
+
+# to identify wet/dry fib samples  
+source(here::here("R", "anlz_fibwetdry.R"))
+```
+
+
+
+# Download things  
+
+
+## Enterococcus data  
+
+```{r}
+stns <- unique(catch_pixels$station)
+stns[which(stns == "21FLCOSP_WQX-CENTRAL *")] <- "21FLCOSP_WQX-CENTRAL CANAL"
+# define arguments
+
+
+stations <- stns  # can subset if desired
+entero_names <- c("Enterococci",
+                  "Enterococcus")
+startDate <- as.Date("2018-01-01")
+endDate <- as.Date("2022-12-31")
+```
+
+```{r}
+# put them together
+# date format has to be mm-dd-yyyy for the url
+args <- list(
+    siteid = stations,
+    characteristicName = entero_names,
+    startDateLo = format(startDate, "%m-%d-%Y"),
+    startDateHi = format(endDate, "%m-%d-%Y")
+)
+```
+
+```{r}
+# grab the data
+fibdat <- read_importwqpStationsAndStuff(args = args)
+
+# fibdat2 <- read_importwqpStationsAndStuff(args = args)
+
+fibdat$date <- lubridate::ymd(fibdat$date)
+```
+
+```{r}
+#| eval: false
+
+fibdat2 <- fibdat |> 
+    mutate(year = lubridate::year(date))
+table(fibdat2$station, fibdat2$year)
+```
+
+
+## Precip data  
+
+Actually need to loop through some years  
+
+```{r}
+# yrs <- 2018:2022
+# 
+# prcp_out <- list()
+# 
+# for(i in seq_along(yrs)){
+#     yr = yrs[i]
+#     prcptmp <- read_importrain(curyr = yr, catch_pixels = catch_pixels,
+#                            quiet = FALSE)
+#     prcp_out[[i]] <- prcptmp
+# }
+# 
+# prcpdat <- bind_rows(prcp_out)
+# 
+# save(prcpdat, file = here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
+load(here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
+```
+
+Fix Central Canal in the precip data station listing, so it will match the station in the fib data.  
+
+```{r}
+prcpdat <- prcpdat |> 
+    mutate(station = case_when(station == "21FLCOSP_WQX-CENTRAL *" ~ "21FLCOSP_WQX-CENTRAL CANAL",
+                               .default = station))
+```
+
+
+## Define stations  
+
+Some of the FIB stations are in the same catchments used for rain data - when calculating FIB amounts, we want them included; but when calculating rain amounts, we don't want to falsely replicate them. So define which ones should be removed for calculating rain stats:  
+
+```{r}
+stn_prcp_dupes <- c(
+    '21FLHILL_WQX-103',
+    '21FLHILL_WQX-619',
+    '21FLHILL_WQX-597',
+    '21FLHILL_WQX-264', 
+    '21FLHILL_WQX-180', 
+    '21FLDOH_WQX-MANATEE153',
+    '21FLCOSP_WQX-SOUTH CANAL',
+    '21FLCOSP_WQX-CENTRAL CANAL',
+    '21FLPDEM_WQX-39-05',
+    '21FLMANA_WQX-LM4', 
+    '21FLMANA_WQX-LM5',
+    '21FLMANA_WQX-LM6'
+)
+```
+
+# Create combinations of definitions  
+
+Remember, temporal threshold of 1 means "sample day" - for sample day + previous day, use 2 for the threshold. Previous 2 days, 3. Previous 3 days, 4.  
+
+```{r}
+definition_combos <- expand.grid(wet_threshold = c(0.25, 0.5, 0.75, 1), 
+                                 temporal_threshold = 1:4)
+```
+
+# Loop through them  
+
+```{r}
+outs_df <- list()
+outs_comp_df <- list()
+outs_graphics_conc <- list()
+outs_graphics_prcp <- list()
+for(i in 1:nrow(definition_combos)){
+    wetthrs <- definition_combos$wet_threshold[i]
+    tmpthrs <- definition_combos$temporal_threshold[i]
+    
+    fib_out <- anlz_fibwetdry(fibdat, prcpdat, 
+                        temporal_window = tmpthrs, 
+                        wet_threshold = wetthrs)
+    
+    
+    # sample information
+    # ------------------------------------------------------------------------
+    # number wet samples
+    nwet <- sum(fib_out$wet_sample, na.rm = TRUE)
+    # number dry samples
+    ndry <- sum(fib_out$wet_sample == FALSE, na.rm = TRUE)
+    # number samples
+    nsamps <- nrow(fib_out)
+    # proportion of samples that are wet, out of those that could be ID'd:
+    prop_wet <- nwet / (nwet + ndry)
+    # percent wet
+    pct_wet <- round(prop_wet*100, 1)
+    # number stations
+    nstns <- length(unique(fib_out$station))
+    
+    overall <- data.frame(
+        wet_threshold = wetthrs,
+        temporal_window = tmpthrs,
+        nsamps,
+        nstns,
+        nwet,
+        ndry,
+        prop_wet,
+        pct_wet
+    )
+
+    
+    # concentration info
+    # -------------------------------------------------------------------------
+    conc_out <- fib_out |> 
+        filter(!is.na(wet_sample),
+               !is.na(FIBconc)) |> 
+        summarize(.by = wet_sample,
+                  nsamples = n(),
+                  medianEntero = median(FIBconc),
+                  IQREntero = IQR(FIBconc),
+                  pct75Entero = quantile(FIBconc, 0.75),
+                  geom_meanEntero = exp(mean(log(FIBconc + 0.001))),
+                  quantilesEntero = list(quantile(FIBconc)),
+                  nexceedances = sum(FIBconc > 70),
+                  propExceedances = nexceedances / nsamples)
+    
+    
+    # precip info
+    # --------------------------------------------------------------------------
+    
+    # remove dupe stations, so don't double-count rain from same catchments
+    prcp_out <- fib_out |> 
+        filter(!(station %in% stn_prcp_dupes),
+               !is.na(wet_sample)) |>
+        select(rain_sampleDay, rain_total, wet_sample) |> 
+        summarize(.by = wet_sample,
+                  median_prcp = median(rain_total),
+                  quantiles_prcp = list(quantile(rain_total)))
+    
+    
+    # combine for writing out  
+    comb_out <- full_join(conc_out, prcp_out,
+                          by = "wet_sample") |> 
+        mutate(wet_threshold = wetthrs,
+               temporal_window = tmpthrs) |> 
+        relocate(c(wet_threshold, temporal_window))
+    
+    outs_comp_df[[i]] <- comb_out
+    
+    
+    comp2 <- conc_out |> 
+        select(-IQREntero, -quantilesEntero, -nexceedances) |> 
+        pivot_longer(-wet_sample,
+                     names_to = "stat",
+                     values_to = "value") |>
+        mutate(wet_sample = case_when(wet_sample == TRUE ~ "wet",
+                                      wet_sample == FALSE ~ "dry",
+                                      .default = "somethingwrong")) |> 
+        pivot_wider(names_from = c(stat, wet_sample),
+                    values_from = value)
+    
+    outs_df[[i]] <- cbind(overall, comp2)
+
+    
+    # graphs
+    # --------------------------------------------------------------------------
+    
+    outs_graphics_conc[[i]] <- ggplot(fib_out, aes(x = wet_sample,
+                                                   y = FIBconc)) +
+        geom_boxplot() +
+        scale_y_log10() +
+        labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+    
+    
+    outs_graphics_prcp[[i]] <- ggplot(fib_out, aes(x = wet_sample,
+                                                   y = rain_total)) +
+        geom_boxplot() +
+        labs(subtitle = glue::glue("'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+}
+```
+
+```{r}
+wet_drys <- bind_rows(outs_comp_df) |> 
+    arrange(wet_threshold,
+            temporal_window,
+            wet_sample) |> 
+    left_join(bind_rows(outs_df))
+
+
+overall <- bind_rows(outs_df) |> 
+    mutate(threshold = glue::glue("{wet_threshold} inches over {temporal_window} days"),
+           median_diff = medianEntero_wet - medianEntero_dry,
+           geomMean_diff = geom_meanEntero_wet - geom_meanEntero_dry,
+           pct75_diff = pct75Entero_wet - pct75Entero_dry,
+           excd_diff = propExceedances_wet - propExceedances_dry)
+```
+
