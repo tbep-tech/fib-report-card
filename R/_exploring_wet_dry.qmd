@@ -284,3 +284,17 @@ overall <- bind_rows(outs_df) |>
            excd_diff = propExceedances_wet - propExceedances_dry)
 ```
 
+```{r}
+overall |> 
+    select(threshold,
+           ends_with("diff"),
+           everything()) |> 
+    View()
+```
+
+We need a certain amount of samples to even be considered wet before we can reliably distinguish - e.g. if only 5% of samples are wet, we can't really say much. So what have we got?  The histogram shows proportions (e.g. 0.1 = 10%).  
+
+```{r}
+hist(overall$prop_wet, breaks = 10)
+```
+
