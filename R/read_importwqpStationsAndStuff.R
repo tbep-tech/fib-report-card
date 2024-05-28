@@ -38,6 +38,8 @@ read_importwqpStationsAndStuff <- function(args){
                        url_startDateHi,
                        url_end)
     
+    # replace spaces with %20
+    url_full <- stringr::str_replace_all(url_full, " ", "%20")
     
     # download and read in the file
     tmp1 <- tempfile()
