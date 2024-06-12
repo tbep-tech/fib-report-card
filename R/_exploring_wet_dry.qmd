@@ -22,6 +22,7 @@ library(tidyverse)
 library(sf)
 library(mapview)
 library(tbeptools)
+library(patchwork)
 
 dbasins <- read_sf(here::here("data", "geospatial", "dbasins-galb.shp"))
 catchments <- read_sf(here::here("data", "geospatial", "TB_Select_Fib_Catchments_Dissolved.shp"))
@@ -255,15 +256,18 @@ for(i in 1:nrow(definition_combos)){
     # --------------------------------------------------------------------------
     
     outs_graphics_conc[[i]] <- ggplot(fib_out, aes(x = wet_sample,
-                                                   y = FIBconc)) +
-        geom_boxplot() +
+                                                   y = FIBconc,
+                                                   fill = wet_sample)) +
+        geom_violin(draw_quantiles = c(0.25, 0.5, 0.75),
+                    alpha = 0.3) +
         scale_y_log10() +
-        labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days"))
+        labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days")) +
+        theme(legend.position = "none")
     
     
     outs_graphics_prcp[[i]] <- ggplot(fib_out, aes(x = wet_sample,
                                                    y = rain_total)) +
-        geom_boxplot() +
+        geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
         labs(subtitle = glue::glue("'wet' threshold {wetthrs} inches over {tmpthrs} days"))
 }
 ```
@@ -291,6 +295,198 @@ overall |>
            everything()) |> 
     View()
 ```
+
+
+# Graphs!  
+
+## Visualize Entero concentrations under various thresholds  
+
+These are violin plots - like boxplots, but showing the shape of the distribution - with quantiles drawn as horizontal lines (25th %ile; median; 75th %ile)  
+
+```{r}
+grps <- outs_graphics_conc
+
+(grps[[1]] + grps[[2]]) / (grps[[3]] + grps[[4]])  +
+    plot_annotation(title = "varying precip over 1 day")
+
+(grps[[5]] + grps[[6]]) / (grps[[7]] + grps[[8]]) +
+    plot_annotation(title = "varying precip over 2 days")
+    
+(grps[[9]] + grps[[10]]) / (grps[[11]] + grps[[12]]) +
+    plot_annotation(title = "varying precip over 3 days")
+    
+(grps[[13]] + grps[[14]]) / (grps[[15]] + grps[[16]]) +
+    plot_annotation(title = "varying precip over 4 days")
+```
+
+
+It looks like the shape doesn't change too much by varying the amount of precip over the same number of days. Let's look at a half-inch threshold over each of the days:  
+
+```{r}
+(grps[[2]] + grps[[6]]) / (grps[[10]] + grps[[14]]) +
+    plot_annotation(title = "0.5 inches over varying # of days")
+
+```
+
+It's hard to compare these because of the NAs for wet-sample throwing off the x-axis. I've kept those because it's important to notice that we're getting NAs when we do this - presumably only at the beginning of the entire time series when we don't have data from the days before sampling because of the year cutoff. Important to note that we need to download precip data for at least several days before FIB samples - e.g. if you want to look at FIBs from 2018-2023, download precip data starting in mid-December 2017, to avoid those NAs.  
+
+## Removing unidentified samples  
+
+Make those graphs again but cutting out the NAs now.
+
+```{r}
+outs_graphics_conc2 <- list()
+for(i in 1:nrow(definition_combos)){
+    wetthrs <- definition_combos$wet_threshold[i]
+    tmpthrs <- definition_combos$temporal_threshold[i]
+    
+    fib_out <- anlz_fibwetdry(fibdat, prcpdat, 
+                        temporal_window = tmpthrs, 
+                        wet_threshold = wetthrs) |> 
+        filter(!is.na(wet_sample))
+    
+    
+    # sample information
+    # ------------------------------------------------------------------------
+    # number wet samples
+    nwet <- sum(fib_out$wet_sample, na.rm = TRUE)
+    # number dry samples
+    ndry <- sum(fib_out$wet_sample == FALSE, na.rm = TRUE)
+    # number samples
+    nsamps <- nrow(fib_out)
+    # proportion of samples that are wet, out of those that could be ID'd:
+    prop_wet <- nwet / (nwet + ndry)
+    # percent wet
+    pct_wet <- round(prop_wet*100, 1)
+    # number stations
+    nstns <- length(unique(fib_out$station))
+    
+    
+    # graphs
+    # --------------------------------------------------------------------------
+    
+    outs_graphics_conc2[[i]] <- ggplot(fib_out, aes(x = wet_sample,
+                                                   y = FIBconc,
+                                                   fill = wet_sample)) +
+        geom_violin(draw_quantiles = c(0.25, 0.5, 0.75),
+                    alpha = 0.3) +
+        scale_y_log10() +
+        labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days")) +
+        theme(legend.position = "none")
+
+}
+```
+
+```{r}
+grps <- outs_graphics_conc2
+
+# over one day
+(grps[[1]] + grps[[2]]) / (grps[[3]] + grps[[4]]) +
+    plot_annotation(title = "varying precip over 1 day")
+# 2 days
+(grps[[5]] + grps[[6]]) / (grps[[7]] + grps[[8]]) +
+    plot_annotation(title = "varying precip over 2 days")
+# 3 days
+(grps[[9]] + grps[[10]]) / (grps[[11]] + grps[[12]]) +
+    plot_annotation(title = "varying precip over 3 days")
+# 4 days    
+(grps[[13]] + grps[[14]]) / (grps[[15]] + grps[[16]]) +
+    plot_annotation(title = "varying precip over 4 days")
+
+
+
+# 0.5 in
+(grps[[2]] + grps[[6]]) / (grps[[10]] + grps[[14]]) +
+    plot_annotation(title = "0.5 inches over varying # of days")
+
+# 0.75 in
+(grps[[3]] + grps[[7]]) / (grps[[11]] + grps[[15]]) +
+    plot_annotation(title = "0.75 inches over varying # of days")
+```
+
+
+Distribution of concentrations really doesn't change too much, visually. It's the top end of wet samples that changes shape a bit, and the percent of samples that get classified as wet.  
+
+~18% of samples get classified as 'wet' with 0.5 inch over 2 days or 0.75 inches over 3 days.  
+
+~25% of samples are classified as 'wet' with 0.5 inch over 3 days.  
+
+These numbers all feel pretty reasonable.  
+
+## Proportion of Exceedances?  
+
+Does this change?  
+
+```{r}
+long <- overall |> 
+    select(threshold,
+           wet_threshold,
+           temporal_window,
+           propExceedances_dry,
+           propExceedances_wet,
+           geommean_dry = geom_meanEntero_dry,
+           geommean_wet = geom_meanEntero_wet) |> 
+    pivot_longer(-c(threshold, wet_threshold, temporal_window),
+                 names_to = c("param", "sampleType"),
+                 names_sep = "_",
+                 values_to = "value") |> 
+    pivot_wider(names_from = param,
+                values_from = value)
+```
+
+```{r}
+ggplot(long, aes(x = sampleType,
+                 y = propExceedances,
+                 col = as.factor(wet_threshold),
+                 shape = as.factor(temporal_window))) +
+    geom_point(size = 3,
+               alpha = 0.8) +
+    labs(title = "Exceedances",
+         x = "Sample Type",
+         y = "proportion of samples over 70 CFU/100mL",
+         shape = "# days",
+         col = "inches of precip")
+
+
+ggplot(filter(long,
+              wet_threshold %in% c(0.5, 0.75),
+              temporal_window %in% c(2, 3)), 
+       aes(x = sampleType,
+                 y = propExceedances,
+                 col = as.factor(wet_threshold),
+                 shape = as.factor(temporal_window))) +
+    geom_point(size = 3,
+               alpha = 0.8) +
+    labs(title = "Exceedances",
+         subtitle = "only 0.5 or 0.75 inches",
+         x = "Sample Type",
+         y = "proportion of samples over 70 CFU/100mL",
+         shape = "# days",
+         col = "inches of precip")
+```
+
+The biggest jumps of exceedance seem to happen by increasing the number of inches required to classify a sample as 'wet'. The difference seems to be around 10% between 4 days and 1 day within each "inches" threshold.  Whichever threshold combinations get used, there will be more exceedances in wet samples than dry.  
+
+Half an inch over 2 days seems essentially the same across all these metrics as 0.75 inches over 3 days.  
+
+```{r}
+(grps[[6]] + grps[[11]]) / (grps[[10]] + plot_spacer()) +
+    plot_annotation(title = "Comparison of 0.5 / 0.75 inches")
+```
+
+Let's examine any other differences via table (e.g. geometric mean)  
+
+```{r}
+overall |> 
+    filter(wet_threshold %in% c(0.5, 0.75),
+              temporal_window %in% c(2, 3)) |> 
+    select(threshold, everything()) |> 
+    DT::datatable()
+```
+
+Again, 0.5 inches over 2 days is pretty similar to 0.75 inches over 3 days. The others have pretty different geometric means and number of samples classified as wet.
+
+
 
 We need a certain amount of samples to even be considered wet before we can reliably distinguish - e.g. if only 5% of samples are wet, we can't really say much. So what have we got?  The histogram shows proportions (e.g. 0.1 = 10%).  
 
