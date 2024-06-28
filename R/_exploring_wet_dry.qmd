@@ -494,3 +494,182 @@ We need a certain amount of samples to even be considered wet before we can reli
 hist(overall$prop_wet, breaks = 10)
 ```
 
+## Eval a large grid of options
+
+```{r}
+wetrng <- c(0.25, 4)
+wetstp <- 0.25
+dys <- c(1, 14)
+definition_combos <- expand.grid(wet_threshold = seq(wetrng[1], wetrng[2], by = wetstp), 
+                                 temporal_threshold = dys[1]:dys[2])
+```
+
+These examples show a large range of options for number of preceding days and cumulative precipitation to assess the "response surface" for samples defined as wet or dry and their differences.  The goal is to better understand how the selected options can discriminate between samples or to determine when the selected options are not useful. Every combination of options from `r wetrng[1]` to `r wetrng[2]` inches of precipitation increasing by `r wetstp` inches over `r dys[1]` to `r dys[2]` days are evaluated for a total of `r nrow(definition_combos)` combinations.  
+
+```{r}
+outs_df <- list()
+for(i in 1:nrow(definition_combos)){
+    # cat(i, '\t')
+    wetthrs <- definition_combos$wet_threshold[i]
+    tmpthrs <- definition_combos$temporal_threshold[i]
+    
+    fib_out <- anlz_fibwetdry(fibdat, prcpdat, 
+                              temporal_window = tmpthrs, 
+                              wet_threshold = wetthrs)
+    
+    
+    # sample information
+    # ------------------------------------------------------------------------
+    # number wet samples
+    nwet <- sum(fib_out$wet_sample, na.rm = TRUE)
+    # number dry samples
+    ndry <- sum(fib_out$wet_sample == FALSE, na.rm = TRUE)
+    # number samples
+    nsamps <- nrow(fib_out)
+    # proportion of samples that are wet, out of those that could be ID'd:
+    prop_wet <- nwet / (nwet + ndry)
+    # percent wet
+    pct_wet <- prop_wet*100
+    # number stations
+    nstns <- length(unique(fib_out$station))
+    
+    overall <- data.frame(
+        wet_threshold = wetthrs,
+        temporal_window = tmpthrs,
+        nsamps,
+        nstns,
+        nwet,
+        ndry,
+        prop_wet,
+        pct_wet
+    )
+    
+    
+    # concentration info
+    # -------------------------------------------------------------------------
+    conc_out <- fib_out |> 
+        filter(!is.na(wet_sample),
+               !is.na(FIBconc)) |> 
+        summarize(.by = wet_sample,
+                  nsamples = n(),
+                  medianEntero = median(FIBconc),
+                  IQREntero = IQR(FIBconc),
+                  pct75Entero = quantile(FIBconc, 0.75),
+                  geom_meanEntero = exp(mean(log(FIBconc + 0.001))),
+                  quantilesEntero = list(quantile(FIBconc)),
+                  nexceedances = sum(FIBconc > 70),
+                  propExceedances = nexceedances / nsamples)
+    
+    
+    # precip info
+    # -------------------------------------------------------------------------
+    
+    
+    comp2 <- conc_out |> 
+        select(-IQREntero, -quantilesEntero, -nexceedances) |> 
+        pivot_longer(-wet_sample,
+                     names_to = "stat",
+                     values_to = "value") |>
+        mutate(wet_sample = case_when(wet_sample == TRUE ~ "wet",
+                                      wet_sample == FALSE ~ "dry",
+                                      .default = "somethingwrong")) |> 
+        pivot_wider(names_from = c(stat, wet_sample),
+                    values_from = value)
+    
+    if(sum(names(comp2) %in% c('nsamples_dry', 'nsamples_wet')) == 2)
+        comp2 <- comp2 |> 
+            mutate(
+                meddiff = medianEntero_wet - medianEntero_dry,
+            )
+        
+    outs_df[[i]] <- cbind(overall, comp2)
+    
+    
+}
+
+# combined results
+res <- do.call('bind_rows', outs_df) |> 
+    mutate(
+        pct_wet = ifelse(pct_wet == 0, NA, pct_wet), 
+        pct_lab = case_when(
+            round(pct_wet, 0) == 0 ~ '< 1%', 
+            is.na(pct_wet) ~ '', 
+            T ~ paste0(round(pct_wet, 0), '%')
+            )
+    )
+```
+
+```{r}
+#| fig-height: 8.5
+#| fig-width: 8 
+ggplot(res, aes(x = factor(wet_threshold), y = factor(temporal_window))) +
+    geom_tile(aes(fill = pct_wet), color = 'black') +
+    geom_text(aes(label = pct_lab), size = 3, color = 'white') +
+    scale_fill_viridis_c() +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
+    theme(legend.position  = 'top') + 
+    labs(
+        y = "Temporal Window (days)",
+        x = "Wet Threshold (inches)",
+        fill = 'Percent samples "Wet"'
+    )
+
+ggplot(res, aes(x = factor(wet_threshold), y = factor(temporal_window))) +
+    geom_tile(aes(fill = meddiff), color = 'black') +
+    geom_text(aes(label = round(meddiff, 0)), size = 3, color = 'white') +
+    scale_fill_viridis_c() +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
+    theme(legend.position  = 'top') + 
+    labs(
+        y = "Temporal Window (days)",
+        x = "Wet Threshold (inches)",
+        fill = 'Diff. in median between wet/dry'
+    )
+
+ggplot(res, aes(x = factor(wet_threshold), y = factor(temporal_window))) +
+    geom_tile(aes(fill = propExceedances_wet), color = 'black') +
+    geom_text(aes(label = round(propExceedances_wet, 2)), size = 3, color = 'white') +
+    scale_fill_viridis_c() +
+    scale_x_discrete(expand = c(0, 0)) +
+    scale_y_discrete(expand = c(0, 0)) +
+    theme(legend.position  = 'top') + 
+    labs(
+        y = "Temporal Window (days)",
+        x = "Wet Threshold (inches)",
+        fill = 'Prop. exceedances in wet samples'
+    )
+
+```
+ 
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+toplo <- res |> 
+    select(wet_threshold, temporal_window, pct_wet, meddiff, propExceedances_wet) |>
+    pivot_longer(-c(wet_threshold, temporal_window),
+                 names_to = "stat",
+                 values_to = "value") |> 
+    mutate(
+        stat = factor(stat, levels = c('pct_wet', 'meddiff', 'propExceedances_wet'), 
+                      labels = c('Percent wet samples', 'Diff. in median between wet/dry', 'Prop. exceedances in wet samples'))
+    )
+
+ggplot(toplo, aes(x = wet_threshold, y = value, group = factor(temporal_window), color = temporal_window)) +
+    geom_line() +
+    scale_color_viridis_c() +
+    theme_minimal() +
+    theme(
+        legend.position  = 'top', 
+        strip.placement = 'outside'
+        ) + 
+    facet_wrap(~stat, scales = 'free_y', strip.position = 'left') +
+    labs(
+        y = NULL,
+        x = "Wet Threshold (inches)",
+        color = 'Temporal Window (days)'
+    )
+```
+
+These examples show competing objectives for defining wet/dry samples, e.g., maximizing median differences while creating a balance between wet/dry samples.  For example, the maximum medium difference has a very small percentage of wet samples because the criteria for wet samples is very strict, e.g., an excessive amount of rain in a very short period of time. The criteria can be optimized to identify which combination of wet threshold and temporal window maintains the best balance in percentage between wet/dry samples and the greatest median difference.
