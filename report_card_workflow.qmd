@@ -36,6 +36,12 @@ source(here::here("R", "raindl.R"))
 
 # to identify wet/dry fib samples  
 source(here::here("R", "anlz_fibwetdry.R"))
+
+source(here::here("R", "anlz_enteromatrix.R"))
+source(here::here("R", "show_enteromatrix.R"))
+
+source(here::here("R", "anlz_enteromap.R"))
+# source(here::here("R", "show_enteromap.R"))
 ```
 
 
@@ -176,9 +182,43 @@ sum(test2$wet_sample)/nrow(test2)
 
 # Calculate Report Card Metrics  
 
+
+```{r}
+fibdat <- fibdat |> 
+    mutate(yr = lubridate::year(date),
+           mo = lubridate::month(date)) |> 
+    rename(ecocci = FIBconc)
+```
+
+make it like epchc data to see if it will work in anlz_fibmatrix  - pretend it's fecal coliform
+
+```{r}
+fake_fib <- fibdat |> 
+    rename(epchc_station = station,
+           fcolif = ecocci)
+anlz_fibmatrix(fake_fib)
+show_fibmatrix(fake_fib, stas = unique(fake_fib$epchc_station),
+               yrrng = c(2018, 2022),
+               lagyr = 1)
+# not pretty, but it does work
+```
+
+
+
+
 `anlz_fibmap()`  - categorize based on thresholds  
 
 `anlz_fibmatrix()`  
+
+```{r}
+anlz_enteromatrix(fibdat, lagyr = 1)
+show_enteromatrix(fibdat, lagyr = 1)
+
+anlz_enteromap(fibdat)
+# need to get lat and long associated with the fibdat data frame
+# before this will work - make a tbeptools object??
+```
+
 
 
 # Generate Report Card tables/graphics  
