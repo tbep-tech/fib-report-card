@@ -30,9 +30,8 @@ anlz_enteromatrix <- function (fibdata, yrrng = NULL, stas = NULL, lagyr = 3)
         stop("Stations with insufficient data for lagyr: ", 
              paste(stas[chk], collapse = ", "))
     dat <- fibdata %>% dplyr::filter(station %in% stas) %>% 
-        dplyr::filter(yr >= (yrrng[1] - (lagyr - 1)) & yr <= 
-                          yrrng[2]) %>% dplyr::filter(!is.na(ecocci) | ecocci < 
-                                                          0) %>% 
+        dplyr::filter(yr >= (yrrng[1] - (lagyr - 1)) & yr <= yrrng[2]) %>% 
+        dplyr::filter(!is.na(ecocci) | ecocci < 0) %>% 
         summarise(gmean = geomean(ecocci), 
                   sumgt130 = sum(ecocci > 130), 
                   station_tot = dplyr::n(), 

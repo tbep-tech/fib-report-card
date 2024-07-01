@@ -29,7 +29,7 @@ read_importwqpStationsAndStuff <- function(args){
     url_characteristicName <- paste0("&characteristicName=", paste0(args$characteristicName, collapse = "%3B"))
     url_startDateLo <- paste0("&startDateLo=", args$startDateLo)
     url_startDateHi <- paste0("&startDateHi=", args$startDateHi) 
-    url_end <- "&mimeType=csv"
+    url_end <- "&mimeType=csv&dataProfile=biological"
     
     url_full <- paste0(url_base,
                        url_siteid,
@@ -51,8 +51,11 @@ read_importwqpStationsAndStuff <- function(args){
     # select columns
     dat2 <- dat |> 
         dplyr::select(station = MonitoringLocationIdentifier,
+                      Latitude = ActivityLocation.LatitudeMeasure,
+                      Longitude = ActivityLocation.LongitudeMeasure,
                       ecocci = ResultMeasureValue, # - the result (has characters in here too - "Not Reported")  
-                      ecocci_units = ResultMeasure.MeasureUnitCode,  
+                      ecocci_units = ResultMeasure.MeasureUnitCode, 
+                      qualifier = MeasureQualifierCode,
                       date = ActivityStartDate,
                       time = ActivityStartTime.Time, # local time  
                       time_zone = ActivityStartTime.TimeZoneCode,
