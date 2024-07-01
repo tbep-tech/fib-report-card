@@ -35,7 +35,7 @@ show_enteromap <- function(fibdata, yrsel, mosel){
         tidyr::unite('grp', indnm, colnm, remove = F)
     
     # create levels for group, must match order of icons list
-    levs <- expand.grid(unique(tomap$colnm), unique(tomap$indnm)) %>%
+    levs <- expand.grid(levels(tomap$colnm), unique(tomap$indnm)) %>%
         unite('levs', Var2, Var1) %>%
         pull(levs)
     
