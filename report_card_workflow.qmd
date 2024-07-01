@@ -41,7 +41,7 @@ source(here::here("R", "anlz_enteromatrix.R"))
 source(here::here("R", "show_enteromatrix.R"))
 
 source(here::here("R", "anlz_enteromap.R"))
-# source(here::here("R", "show_enteromap.R"))
+source(here::here("R", "show_enteromap.R"))
 ```
 
 
@@ -83,6 +83,8 @@ fibdat <- read_importwqpStationsAndStuff(args = args)
 
 fibdat$date <- lubridate::ymd(fibdat$date)
 ```
+
+
 
 ```{r}
 #| eval: false
@@ -180,14 +182,35 @@ sum(test2$wet_sample)/nrow(test2)
 ```
 
 
-# Calculate Report Card Metrics  
+from an email 6/12/24:
+"Basically, 1/2 inch over 2 days (sample day + one day prior) gets pretty similar output as 3/4 inch over 3 days (sample day + 2 days prior). Both of those options flag about 18% of samples as 'wet'. 1/2 inch over 3 days flags about 25% as wet, as does 3/4 inches over 4 days. Other combinations gave 10% or less, or 30% or more - all ranges that felt a little wrong.  
+
+Anyway, 1/2 inch over 2 days and 3/4 inch over 3 days both "feel" pretty good, and I think there's precedent for either choice, if I'm remembering right from my other research."
 
 
 ```{r}
-fibdat <- fibdat |> 
-    mutate(yr = lubridate::year(date),
-           mo = lubridate::month(date))
+fibwetdry <- anlz_fibwetdry(fibdat, prcpdat, 
+                        temporal_window = 2, 
+                        wet_threshold = 0.5) |> 
+    filter(!is.na(wet_sample))
+# number of wet samples:
+sum(fibwetdry$wet_sample, na.rm = TRUE)
+# proportion of samples that are wet:
+sum(fibwetdry$wet_sample, na.rm = TRUE)/nrow(fibwetdry)
+
+
+
+# split into wet/dry frames
+fibwet <- fibwetdry |> 
+    filter(wet_sample == TRUE)
+
+fibdry <- fibwetdry |> 
+    filter(wet_sample == FALSE)
 ```
+
+
+
+# Calculate Report Card Metrics  
 
 make it like epchc data to see if it will work in anlz_fibmatrix  - pretend it's fecal coliform
 
@@ -209,15 +232,53 @@ show_fibmatrix(fake_fib, stas = unique(fake_fib$epchc_station),
 
 `anlz_fibmatrix()`  
 
+## Entire data frame  
+
 ```{r}
 anlz_enteromatrix(fibdat, lagyr = 1)
 show_enteromatrix(fibdat, lagyr = 1)
 
 anlz_enteromap(fibdat)
-# need to get lat and long associated with the fibdat data frame
-# before this will work - make a tbeptools object??
+
+
+# playing with maps through time
+show_enteromap(fibdat, yrsel = 2020, mosel = 8)
+show_enteromap(fibdat, yrsel = 2020, mosel = 9)
+show_enteromap(fibdat, yrsel = 2020, mosel = 10)
+show_enteromap(fibdat, yrsel = 2020, mosel = 11)
+show_enteromap(fibdat, yrsel = 2020, mosel = 12)
+show_enteromap(fibdat, yrsel = 2021, mosel = 1)
+show_enteromap(fibdat, yrsel = 2021, mosel = 2)
+show_enteromap(fibdat, yrsel = 2021, mosel = 3)
+show_enteromap(fibdat, yrsel = 2021, mosel = 4)
+show_enteromap(fibdat, yrsel = 2021, mosel = 5)
 ```
 
+maybe something we could do would be change shape based on whether the sample was wet or dry.....
+
+## Subsets of wet and dry  
+
+### Wet  
+
+```{r}
+anlz_enteromatrix(fibwet, lagyr = 1)
+show_enteromatrix(fibwet, lagyr = 1)
+
+anlz_enteromap(fibwet)
+```
+
+### Dry  
+
+```{r}
+anlz_enteromatrix(fibdry, lagyr = 1)
+show_enteromatrix(fibdry, lagyr = 1)
+
+anlz_enteromap(fibdry)
+```
+
+Weird; I'd have thought we'd see more 'bad' colors in the wet subset. Maybe we're seeing more in the dry just because there are more samples, period???  
+
+In the wet samples, the 'bad' scores seem to be more associated with certain years (granted this is a small sample size), whereas in the dry samples, it's more that certain stations seem more problematic than others.  
 
 
 # Generate Report Card tables/graphics  
