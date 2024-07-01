@@ -11,7 +11,10 @@ anlz_enteromap <- function (fibdata, yrsel = NULL, mosel = NULL)
                               mo, Latitude, Longitude, ecocci) %>% 
         dplyr::mutate(cat = cut(ecocci, breaks = levs$ecoccilev, right = F, levs$ecoccilbs), 
                       col = cut(ecocci, breaks = levs$ecoccilev, right = F, cols), 
-                      col = as.character(col))
+                      col = as.character(col),
+                      ind = "Enterococcus",
+                      indnm = "ecocci",
+                      conc = ecocci)
     if (!is.null(yrsel)) {
         yrsel <- match.arg(as.character(yrsel), unique(out$yr))
         out <- out %>% dplyr::filter(yr %in% yrsel)
