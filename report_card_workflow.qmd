@@ -42,6 +42,7 @@ source(here::here("R", "show_enteromatrix.R"))
 
 source(here::here("R", "anlz_enteromap.R"))
 source(here::here("R", "show_enteromap.R"))
+source(here::here("R", "show_enteromap_wetdry.R"))
 ```
 
 
@@ -257,6 +258,38 @@ show_enteromap(fibdat, yrsel = 2021, mosel = 5)
 maybe something we could do would be change shape based on whether the sample was wet or dry.....
 
 ## Subsets of wet and dry  
+
+```{r}
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
+
+# make sure it works right if we don't split wet and dry
+# the following 3 maps should all look the same
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = FALSE)
+show_enteromap_wetdry(fibdat, yrsel = 2020, mosel = 8, wetdry = FALSE)
+# shapes don't match in this one - need to check the original mapping fn?
+show_enteromap(fibdat, yrsel = 2020, mosel = 8)
+
+
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 3, wetdry = TRUE)
+# make sure the number of wet samples (none) matches
+fibwetdry |> 
+    filter(yr == 2020,
+           mo == 3) |> 
+    summarize(wet_samples = sum(wet_sample))
+
+# and for august
+fibwetdry |> 
+    filter(yr == 2020,
+           mo == 8) |> 
+    summarize(wet_samples = sum(wet_sample))
+# only 5 showing on the map??
+fibwetdry |> 
+    filter(yr == 2020,
+           mo == 8) |> 
+    View()
+# because some stations were sampled twice that month and are only showing up once
+```
+
 
 ### Wet  
 

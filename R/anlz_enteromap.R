@@ -1,9 +1,10 @@
 #' modifying anlz_fibmap function to work with entero data
 #' removed areasel stuff
 #' removed class and ind stuff because we're only using Enterococcus in 2 or 3M
+#' wetdry means, is there a column for wet_sample?
 
 
-anlz_enteromap <- function (fibdata, yrsel = NULL, mosel = NULL) 
+anlz_enteromap <- function (fibdata, yrsel = NULL, mosel = NULL, wetdry = FALSE) 
 {
     levs <- util_fiblevs()
     cols <- c("#2DC938", "#E9C318", "#EE7600", "#CC3231")
@@ -15,6 +16,10 @@ anlz_enteromap <- function (fibdata, yrsel = NULL, mosel = NULL)
                       ind = "Enterococcus",
                       indnm = "ecocci",
                       conc = ecocci)
+    if (wetdry == TRUE) {
+        stopifnot("fibdat does not contain a 'wet_sample' column" = exists("wet_sample", fibdata))
+        out$wet_sample = fibdata$wet_sample 
+    }
     if (!is.null(yrsel)) {
         yrsel <- match.arg(as.character(yrsel), unique(out$yr))
         out <- out %>% dplyr::filter(yr %in% yrsel)
