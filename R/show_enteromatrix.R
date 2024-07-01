@@ -43,7 +43,12 @@ show_enteromatrix <- function (fibdata, yrrng = NULL, stas = NULL,
         ggplot2::scale_x_discrete(expand = c(0, 0), position = "top") + 
         ggplot2::theme_bw() + 
         ggplot2::theme(axis.title = ggplot2::element_blank(), 
-                       legend.position = "none", panel.grid = ggplot2::element_blank())
+                       legend.position = "none", 
+                       panel.grid = ggplot2::element_blank(),
+                       axis.text.x = ggplot2::element_text(angle = 45,
+                                                          hjust = 0,
+                                                          vjust = 1,
+                                                          size = rel(0.8)))
     if (!is.null(txtsz)) 
         p <- p + ggplot2::geom_text(data = subset(toplo, !is.na(cat)), 
                                     ggplot2::aes(label = cat), size = txtsz, family = family)
