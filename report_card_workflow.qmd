@@ -60,7 +60,7 @@ stns[which(stns == "21FLCOSP_WQX-CENTRAL *")] <- "21FLCOSP_WQX-CENTRAL CANAL"
 stations <- stns  # can subset if desired
 entero_names <- c("Enterococci",
                   "Enterococcus")
-startDate <- as.Date("2018-01-01")
+startDate <- as.Date("2010-01-01")
 endDate <- as.Date("2022-12-31")
 ```
 
@@ -148,7 +148,7 @@ nsamps <- nrow(test1)
 nstns <- length(unique(test1$station))
 
 ggplot(test1, aes(x = wet_sample,
-                  y = FIBconc)) +
+                  y = ecocci)) +
     geom_boxplot() +
     scale_y_log10() +
     labs(subtitle = glue::glue("\n{pct_wet}% of {nsamps} samples across {nstns} stations 'wet' \n'wet' threshold {wetthrs} inches over {tmpthrs} days"))
@@ -186,8 +186,7 @@ sum(test2$wet_sample)/nrow(test2)
 ```{r}
 fibdat <- fibdat |> 
     mutate(yr = lubridate::year(date),
-           mo = lubridate::month(date)) |> 
-    rename(ecocci = FIBconc)
+           mo = lubridate::month(date))
 ```
 
 make it like epchc data to see if it will work in anlz_fibmatrix  - pretend it's fecal coliform

@@ -51,19 +51,21 @@ read_importwqpStationsAndStuff <- function(args){
     # select columns
     dat2 <- dat |> 
         dplyr::select(station = MonitoringLocationIdentifier,
-                      FIBconc = ResultMeasureValue, # - the result (has characters in here too - "Not Reported")  
-                      FIBunits = ResultMeasure.MeasureUnitCode,  
+                      ecocci = ResultMeasureValue, # - the result (has characters in here too - "Not Reported")  
+                      ecocci_units = ResultMeasure.MeasureUnitCode,  
                       date = ActivityStartDate,
                       time = ActivityStartTime.Time, # local time  
                       time_zone = ActivityStartTime.TimeZoneCode,
                       MDL = DetectionQuantitationLimitMeasure.MeasureValue,
                       LabComments = ResultLaboratoryCommentText) |> 
-        dplyr::filter(FIBconc != "Not Reported") |> 
-        dplyr::mutate(FIBconc = as.numeric(FIBconc),
-                      FIBcensored = dplyr::case_when(FIBconc <= MDL ~ TRUE,
-                                                     .default = FALSE)) |> 
-        dplyr::relocate(date, station, FIBconc) |> 
-        dplyr::relocate(FIBcensored, .after = FIBconc) |> 
+        dplyr::filter(ecocci != "Not Reported") |> 
+        dplyr::mutate(ecocci = as.numeric(ecocci),
+                      ecocci_censored = dplyr::case_when(ecocci <= MDL ~ TRUE,
+                                                     .default = FALSE),
+                      yr = lubridate::year(date),
+                      mo = lubridate::month(date)) |> 
+        dplyr::relocate(date, station, ecocci) |> 
+        dplyr::relocate(ecocci_censored, .after = ecocci) |> 
         dplyr::arrange(station, date)
     
     return(dat2)
