@@ -243,16 +243,16 @@ anlz_enteromap(fibdat)
 
 
 # playing with maps through time
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 9, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 10, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 11, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 12, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 1, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 2, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 3, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 4, wetdry = TRUE)
-show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 5, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 9, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 10, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 11, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 12, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2021, mosel = 1, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2021, mosel = 2, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2021, mosel = 3, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2021, mosel = 4, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2021, mosel = 5, wetdry = TRUE)
 ```
 
 maybe something we could do would be change shape based on whether the sample was wet or dry.....
@@ -260,17 +260,17 @@ maybe something we could do would be change shape based on whether the sample wa
 ## Subsets of wet and dry  
 
 ```{r}
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
 
 # make sure it works right if we don't split wet and dry
 # the following 3 maps should all look the same
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = FALSE)
-show_enteromap_wetdry(fibdat, yrsel = 2020, mosel = 8, wetdry = FALSE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 8, wetdry = FALSE)
+show_enteromap(fibdat, yrsel = 2020, mosel = 8, wetdry = FALSE)
 # shapes don't match in this one - need to check the original mapping fn?
 show_enteromap(fibdat, yrsel = 2020, mosel = 8)
 
 
-show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 3, wetdry = TRUE)
+show_enteromap(fibwetdry, yrsel = 2020, mosel = 3, wetdry = TRUE)
 # make sure the number of wet samples (none) matches
 fibwetdry |> 
     filter(yr == 2020,
