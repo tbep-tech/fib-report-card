@@ -98,15 +98,17 @@ show_enteromap_wetdry <- function(fibdata, yrsel, mosel, wetdry = FALSE){
     ecoccidryleg <- leg %>%
         grep('ecoli', ., value = T) %>%
         paste(collapse = '<br/>') %>%
-        paste0('<b><em>Enterococcus</em></b><br/><b>Dry samples</b><br/>#/100mL<br/>', .)
+        paste0('<b>Dry samples</b><br/>#/100mL<br/>', .)
     ecocciwetleg <- leg %>%
         grep('ecocci', ., value = T) %>%
         paste(collapse = '<br/>') %>%
-        paste0('<b><em>Enterococcus</em></b><br/><b>Wet samples</b><br/>#/100mL<br/>', .)
+        paste0('<b>Wet samples</b><br/>#/100mL<br/>', .)
     ecocciallleg <- leg %>%
         grep('ecoli', ., value = T) %>%
         paste(collapse = '<br/>') %>%
-        paste0('<b><em>Enterococcus</em></b><br/><b>All samples</b><br/>#/100mL<br/>', .)
+        paste0('<b>All samples</b><br/>#/100mL<br/>', .)
+    title <- paste0('<b><em>Enterococcus</em><br/>', yrsel, '-', mosel, '</b')
+    
     
     # create map
     out <- util_map(tomap) %>%
@@ -116,7 +118,8 @@ show_enteromap_wetdry <- function(fibdata, yrsel, mosel, wetdry = FALSE){
             lat = ~Latitude,
             icon = ~icons[as.numeric(grp)],
             label = ~lapply(as.list(lab), util_html)
-        ) 
+        ) |> 
+        leaflet::addControl(html = title, position = 'topright')
     
     # add appropriate legends
     if(wetdry == TRUE){

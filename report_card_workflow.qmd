@@ -115,13 +115,13 @@ Actually need to loop through some years
 # prcpdat <- bind_rows(prcp_out)
 # 
 # save(prcpdat, file = here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
-load(here::here("data", "precipitation", "daily_rain_stns_2018-2022.RData"))
+load(here::here("data", "precipitation", "daily_rain_stns_1995-2023.RData"))
 ```
 
 Fix Central Canal in the precip data station listing, so it will match the station in the fib data.  
 
 ```{r}
-prcpdat <- prcpdat |> 
+prcpdat <- prcp_all |> 
     mutate(station = case_when(station == "21FLCOSP_WQX-CENTRAL *" ~ "21FLCOSP_WQX-CENTRAL CANAL",
                                .default = station))
 ```
@@ -243,16 +243,16 @@ anlz_enteromap(fibdat)
 
 
 # playing with maps through time
-show_enteromap(fibdat, yrsel = 2020, mosel = 8)
-show_enteromap(fibdat, yrsel = 2020, mosel = 9)
-show_enteromap(fibdat, yrsel = 2020, mosel = 10)
-show_enteromap(fibdat, yrsel = 2020, mosel = 11)
-show_enteromap(fibdat, yrsel = 2020, mosel = 12)
-show_enteromap(fibdat, yrsel = 2021, mosel = 1)
-show_enteromap(fibdat, yrsel = 2021, mosel = 2)
-show_enteromap(fibdat, yrsel = 2021, mosel = 3)
-show_enteromap(fibdat, yrsel = 2021, mosel = 4)
-show_enteromap(fibdat, yrsel = 2021, mosel = 5)
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 8, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 9, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 10, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 11, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2020, mosel = 12, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 1, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 2, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 3, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 4, wetdry = TRUE)
+show_enteromap_wetdry(fibwetdry, yrsel = 2021, mosel = 5, wetdry = TRUE)
 ```
 
 maybe something we could do would be change shape based on whether the sample was wet or dry.....
