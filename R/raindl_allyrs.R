@@ -29,7 +29,7 @@ read_importrain_many <- function(yrs,
     return(prcpdat)
 }
 
-
+# start the multi-looping ----
 tic("all")
 
 tic("1995.2004")
@@ -49,9 +49,13 @@ prcp_2015.2023 <- read_importrain_many(yrs = 2015:2023, quiet = TRUE)
 toc()
 
 toc()
+# end multi-looping
 
 
-prcp_all <- bind_rows()
+# bind it all together
+prcp_all <- bind_rows(prcp_1995.2004,
+                      prcp_2005.2014,
+                      prcp_2015.2023)
 
 
 save(prcp_all, file = here::here("data", "precipitation", "daily_rain_stns_1995-2023.RData"))
