@@ -1,0 +1,120 @@
+---
+title: "Enterococcus functions in tbeptools"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Enterococcus}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = F, warning = F, 
+  fig.align = 'center', 
+  cache = F
+)
+
+# libraries
+library(tbeptools)
+library(dplyr)
+```
+
+## Background  
+
+Some text here about Enterococcus, why it's a useful indicator, what the hopes are (system-wide report card)  
+
+## Read  
+
+The main function for importing Enterococcus data is `read_importentero()`. Talk about the options. Talk about how it pulls data from the water quality portal.  
+
+First, you need to set up a list of arguments, which will be fed into the WQP API. You can do so as follows:  
+
+```{r, eval = F}
+# set up arguments
+stations <- c('21FLHILL_WQX-101',
+              '21FLHILL_WQX-102',
+              '21FLHILL_WQX-103')
+entero_names <- c('Enterococci',
+                  'Enterococcus')
+startDate <- as.Date('2023-01-01')
+endDate <- as.Date('2023-02-01')
+
+# put the arguments into a list
+args <- list(
+  siteid = stations,
+  characteristicName = entero_names,
+  startDateLo = format(startDate, '%m-%d-%Y'),
+  startDateHi = format(endDate, '%m-%d-%Y')
+)
+
+# download and read the data
+entero_in <- read_importentero(args = args)
+
+# investigate
+head(entero_in)
+```
+
+A data object is also provided with the package: `enterodata` includes all data from 53 selected stations, from 1995-2023.  
+
+```{r}
+head(enterodata, 10)
+```
+
+
+## Analyze  
+
+The `anlz_enteromap()` function is an Enterococcus-specific analogue to the `anlz_fibmap()` fecal coliform function. It assigns categories to each observation in an input data frame, which can be viewed for a given month and year using `show_enteromap()` (analagous to `show_fibmap()`). The categories are specific to Enterococcus in marine waters, and are noted in the `cat` column of the output. Corresponding colors are in the `col` column of the output.  
+
+```{r}
+anlz_enteromap(enterodata)
+```
+
+
+The thresholds are from the Environmental Protection Commission of Hillsborough County and are as follows for Enterococcus:  
+
+```{r, echo = F}
+fibdata %>%
+    anlz_fibmap() %>% 
+    select(Indicator = ind, Threshold = cat) %>% 
+    filter(Indicator == "Enterococcus") %>%
+    unique() %>% 
+    na.omit() %>% 
+    arrange(Indicator) %>% 
+    knitr::kable()
+```
+
+The `yrsel` and `mosel` arguments can be used to filter results by year and month.  Not specifying these arguments will return results for the entire period of record. 
+
+```{r}
+anlz_enteromap(enterodata, yrsel = 2020, mosel = 8)
+```
+
+The `wetdry` argument can be used to determine whether a sample was taken after a rain event (logical `wet_sample` column in output), based on user-specified thresholds and a provided precipitation data object. 
+
+**TALK MORE ABOUT THIS MAYBE** - precipdata only exists for our 53 stations, and it's radar-estimated data for the entire watershed, etc.  
+
+In the below example, we specify 0.5 inches of rain over 2 days (the sample day plus one day before) as a threshold for a rain event.  
+
+```{r}
+anlz_enteromap(enterodata, wetdry = TRUE,
+               precipdata = catchprecip,
+               temporal_window = 2,
+               wet_threshold = 0.5)
+```
+
+
+
+
+`anlz_fibwetdry()`  
+`anlz_enteromap()`  
+`anlz_fibmatrix()`  
+
+## Show  
+
+`show_enteromap()` - also discuss wet/dry display option  
+`show_fibmatrix()` - discuss wet/dry subsetting option but how it's sort of squirrely
